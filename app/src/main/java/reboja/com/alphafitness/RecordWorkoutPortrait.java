@@ -324,6 +324,7 @@ class RemoteConnection implements ServiceConnection {
                         // Move this later if possible.
                         //handler.post(timerThread);
                     //}
+                    // Hello World
 
                 }
                 else if (started)
