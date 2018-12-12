@@ -65,6 +65,8 @@ public class MyService extends Service implements SensorEventListener {
     }
 
 
+
+
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;

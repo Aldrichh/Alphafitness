@@ -48,7 +48,7 @@ public class RecordWorkoutLandscape extends Fragment  {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_record_workout_landscape, container, false);
 
-        /**
+
       // chart = (LineChart) v.findViewById(R.id.chart);
 
       // chart.setOnChartGestureListener(RecordWorkoutLandscape.this);
@@ -81,9 +81,9 @@ public class RecordWorkoutLandscape extends Fragment  {
 
         LineData data = new LineData(dataSets);
 
-        chart.setData(data);
+        //chart.setData(data);
 
-         **/
+
         return v;
     }
 

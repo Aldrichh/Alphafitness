@@ -1,6 +1,5 @@
 package reboja.com.alphafitness;
 
-
 import android.Manifest;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
@@ -95,7 +94,7 @@ public class RecordWorkoutPortrait extends Fragment implements OnMapReadyCallbac
     private Button startWorkoutButton;
     private ImageButton profileButton;
 
-    public static final int MY_PERMISSION_REQUEST = 10;
+    int MY_PERMISSION_REQUEST;
 
 
     private long startTime, updateTime;
@@ -108,6 +107,9 @@ public class RecordWorkoutPortrait extends Fragment implements OnMapReadyCallbac
 
     // String to hold the name of the current user.
     private String currentUser;
+
+    // Will be used to keep track of the workouts in the workout table.
+    private int userID;
 
     private LocationReceiver locationReceiver = new LocationReceiver() {
         @Override
@@ -186,14 +188,14 @@ public class RecordWorkoutPortrait extends Fragment implements OnMapReadyCallbac
                 timerTxt.setText("" + String.format("%02d", hours) + ":" + String.format("%02d", mins) + ":" + String.format("%02d", secs), TextView.BufferType.EDITABLE);
                 handler.post(this);
             }
-    }
-};
+        }
+    };
 
 
 
 
     // The remote service for the application.
-class RemoteConnection implements ServiceConnection {
+    class RemoteConnection implements ServiceConnection {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -218,11 +220,29 @@ class RemoteConnection implements ServiceConnection {
         View view = inflater.inflate(R.layout.fragment_record_workout_portrait, container, false);
 
 
-        dialog = new Dialog(getContext());
-
         // This will keep track of who is the current user logged into the system.
         final SharedPreferences preferences = getContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
         currentUser = preferences.getString("UserName", null);
+
+        if (currentUser != null) {
+            Toast.makeText(getContext(), "Welcome: " + currentUser, Toast.LENGTH_LONG).show();
+        }
+        else {
+            Toast.makeText(getContext(), "No user available, register in profile page", Toast.LENGTH_LONG).show();
+            //Todo: if time, navigate directly to profile page. (Intent)
+        }
+
+        /**
+        ContentResolver cr = getContext().getContentResolver();
+        Cursor cursor = cr.query(URI2, null,null, null, null);
+        if (cursor.getCount() > 0) {
+            Toast.makeText(getContext(), "Welcome ", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(getContext(), "No users registered, go to profile page to input info.", Toast.LENGTH_SHORT).show();
+        }
+        **/
+
 
         /**
          *    This is responsible for launching the profile activity.
@@ -244,19 +264,11 @@ class RemoteConnection implements ServiceConnection {
         timerTxt = (TextView) view.findViewById(R.id.timeTxt);
         timerThread.run();
 
-       // myContentProvider = new MyContentProvider();
+        // myContentProvider = new MyContentProvider();
 
 
         // Getting all of the rows that
 
-        ContentResolver cr = getContext().getContentResolver();
-        Cursor cursor = cr.query(URI2, null,null, null, null);
-        if (cursor.getCount() > 0) {
-            Toast.makeText(getContext(), "Welcome ", Toast.LENGTH_SHORT).show();
-        }
-        else {
-            Toast.makeText(getContext(), "No users registered, go to profile page to input info.", Toast.LENGTH_SHORT).show();
-        }
 
 
 
@@ -270,12 +282,6 @@ class RemoteConnection implements ServiceConnection {
         mapView.onCreate(null);
         mapView.getMapAsync(this);
 
-
-
-
-
-        // Initializing a profile to the application, if none, insert my info into the database.
-        MyContentProvider myContentProvider = new MyContentProvider();
 
         // Initializing the broadcast receivers for the location and steps.
         IntentFilter intentFilter = new IntentFilter(filter);
@@ -296,35 +302,34 @@ class RemoteConnection implements ServiceConnection {
                 if (!started)
                 {
                     /**
-                    // Won't start program unless there is a registered user.
-                    if (currentUser == null) {
-                        Log.v(TAG, "No User Available");
+                     // Won't start program unless there is a registered user.
+                     if (currentUser == null) {
+                     Log.v(TAG, "No User Available");
+                     }
+                     else {
+                     **/
+                    Log.v(TAG, "Starting Workout....");
+                    started = true;
+                    Toast.makeText(getContext(), "Workout has begun", Toast.LENGTH_LONG).show();
+                    startTime = System.currentTimeMillis();
+                    startWorkoutButton.setText("Stop Workout");
+
+
+                    // Setting the remote service up
+                    remoteConnection = new RemoteConnection();
+                    Intent intent = new Intent();
+
+                    intent.setClassName("reboja.com.alphafitness", reboja.com.alphafitness.MyService.class.getName());
+                    if (!getContext().bindService(intent, remoteConnection, Context.BIND_AUTO_CREATE)) {
+
+                        throw new RuntimeException("Couldn't load Remote Service.");
                     }
-                    else {
-                    **/
-                        Log.v(TAG, "Starting Workout....");
-                        started = true;
-                        Toast.makeText(getContext(), "Workout has begun", Toast.LENGTH_LONG).show();
-                        startTime = System.currentTimeMillis();
-                        startWorkoutButton.setText("Stop Workout");
+                    Log.v(TAG, "Service has begun...");
 
 
-                        // Setting the remote service up
-                        remoteConnection = new RemoteConnection();
-                        Intent intent = new Intent();
-
-                        intent.setClassName("reboja.com.alphafitness", reboja.com.alphafitness.MyService.class.getName());
-                        if (!getContext().bindService(intent, remoteConnection, Context.BIND_AUTO_CREATE)) {
-
-                            throw new RuntimeException("Couldn't load Remote Service.");
-                        }
-                        Log.v(TAG, "Service has begun...");
-
-
-                        // Move this later if possible.
-                        //handler.post(timerThread);
+                    // Move this later if possible.
+                    //handler.post(timerThread);
                     //}
-                    // Hello World
 
                 }
                 else if (started)
@@ -393,7 +398,7 @@ class RemoteConnection implements ServiceConnection {
     @Override
     public void onDestroy() {
 
-    getActivity().onRetainNonConfigurationInstance();
+        getActivity().onRetainNonConfigurationInstance();
 
         if (mapView != null) {
             mapView.onDestroy();
@@ -414,18 +419,6 @@ class RemoteConnection implements ServiceConnection {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-       super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-       if (requestCode == MY_PERMISSION_REQUEST) {
-           if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                //onMapReady(new GoogleMap());
-           } else {
-               Toast.makeText(getContext(), "Permissions denied", Toast.LENGTH_SHORT).show();
-           }
-       }
-    }
-
-    @Override
     public void onStop() {
         super.onStop();
         mapView.onStop();
@@ -437,29 +430,27 @@ class RemoteConnection implements ServiceConnection {
 
         // Add a marker in Sydney and move the camera
 
-
+        locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
 
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_COARSE);
         criteria.setPowerRequirement(Criteria.POWER_LOW);
+        locationProvider = locationManager.getBestProvider(criteria, true);
 
 
-
-        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED)
         {
             //ActivityCompat.requestPermissions(getContext(), new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, );
             Toast.makeText(getContext(), "Permissions are not given", Toast.LENGTH_LONG).show();
 
-            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSION_REQUEST);
+            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSION_REQUEST);
             //return;
         }
-        mMap.setMyLocationEnabled(true);
+       // mMap.setMyLocationEnabled(true);
 
 
-        /**
-        locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-        locationProvider = locationManager.getBestProvider(criteria, true);
+
         // Gets the last known location.
         Location location = locationManager.getLastKnownLocation(locationProvider);
 
@@ -488,17 +479,14 @@ class RemoteConnection implements ServiceConnection {
         }
 
 
-
-       // Setting the mapView when it opens to the current location.
-        //LatLng here = new LatLng(location.getLatitude(), location.getLongitude());
-        LatLng here = new LatLng(100, 100);
+        // Setting the mapView when it opens to the current location.
+        LatLng here = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.addCircle(new CircleOptions().center(here).radius(60));
-      //  mMap.addMarker(new MarkerOptions().position(here).title(label));
+        //  mMap.addMarker(new MarkerOptions().position(here).title(label));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(here.latitude, here.longitude), 12.0f));
         // Draws the line for the traveled areas, will be drawn
         mMap.addPolyline(new PolylineOptions().add(here).color(0));
-         **/
 
     }
 

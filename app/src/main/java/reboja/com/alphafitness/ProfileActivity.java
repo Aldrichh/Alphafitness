@@ -28,6 +28,8 @@ public class ProfileActivity extends AppCompatActivity {
 
     private final static String TAG = ProfileActivity.class.getSimpleName();
 
+
+
     // For the name of the user
     private EditText userName;
     private EditText weightText, genderText;
@@ -40,6 +42,8 @@ public class ProfileActivity extends AppCompatActivity {
     private int id;
 
     private String mName;
+
+
 
 
     @Override
@@ -65,6 +69,7 @@ public class ProfileActivity extends AppCompatActivity {
         aCalories = (TextView) findViewById(R.id.allTimeCalsTV);
 
         // This will get the user that is currently logged in.
+
         final SharedPreferences preferences = getSharedPreferences("MyPreferences", MODE_PRIVATE);
         mName = preferences.getString("UserName", null);
 
@@ -74,22 +79,24 @@ public class ProfileActivity extends AppCompatActivity {
             userName.setText(mName);
 
             ContentResolver cr = getApplicationContext().getContentResolver();
-            Cursor cursor = cr.query(MyContentProvider.URI2, null, "UserName = " + mName, null,null);
+            Cursor cursor = cr.query(MyContentProvider.URI2, new String[] {MyContentProvider.P_ID, MyContentProvider.NAME, MyContentProvider.GENDER
+            , MyContentProvider.WEIGHT, MyContentProvider.NUM_WORKOUTS}, "UserName = " + "'" + mName + "'", null,null);
 
             // Gets the information on the user.
             if (cursor != null && cursor.getCount() > 0) {
-                genderText.setText(cursor.getString(2));
-                weightText.setText(cursor.getString(3));
-                id =  cursor.getInt(0);
+
+                if (cursor.moveToFirst()) {
+                    genderText.setText(cursor.getString(2));
+                    weightText.setText(cursor.getString(3));
+                    id =  cursor.getInt(0);
+
+                    // Debugging purposes
+                    //Toast.makeText(this, "USERID: " + id, Toast.LENGTH_LONG).show();
+                }
+
 
             }
             cursor.close();
-            /*
-            Cursor workoutCursor = cr.query(MyContentProvider.URI, null, MyContentProvider.W_ID + " = " + id, null, null);
-            if (workoutCursor != null && workoutCursor.getCount() > 0) {
-
-            }
-            */
 
         }
         else {
@@ -103,12 +110,34 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
+                // Store all of the data from textviews into the ContentValues
+                ContentValues nContent = new ContentValues();
+                nContent.put(MyContentProvider.NAME, userName.getText().toString());
+                nContent.put(MyContentProvider.WEIGHT, weightText.getText().toString());
+                nContent.put(MyContentProvider.GENDER, genderText.getText().toString());
+                nContent.put(MyContentProvider.NUM_WORKOUTS, 0);
+
+                getContentResolver().insert(MyContentProvider.URI2, nContent);
+
+                // Saving the user's data.
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("UserName", userName.getText().toString());
+                //editor.putString("Weight", weightText.getText().toString());
+                //editor.putString("Gender", genderText.getText().toString());
+
+                editor.apply();
+
+                Toast.makeText(getApplicationContext(), "User Has been added.", Toast.LENGTH_SHORT).show();
+
+
+                /**
                 // This checks if there is a user that is equal to the username that is inputted.
                 ContentResolver cr = getApplicationContext().getContentResolver();
-                Cursor cursor = cr.query(MyContentProvider.URI2, new String[] {MyContentProvider.NAME, MyContentProvider.GENDER, MyContentProvider.WEIGHT}, "UserName = " + userName.getText().toString(), null,null);
+                Cursor cursor = cr.query(MyContentProvider.URI2, new String[] {MyContentProvider.NAME}, MyContentProvider.NAME + " = " + userName.getText().toString()
+                , null, null);
 
                 // New user, input the data into the database.
-                if (cursor.getCount() == 0) {
+                if (cursor != null && cursor.getCount() == 0) {
                     ContentValues nContent = new ContentValues();
                     nContent.put(MyContentProvider.NAME, userName.getText().toString());
                     nContent.put(MyContentProvider.WEIGHT, weightText.getText().toString());
@@ -124,6 +153,8 @@ public class ProfileActivity extends AppCompatActivity {
                     Log.v(TAG, "New User added to database.");
                 }
                 cursor.close();
+
+                 **/
             }
         });
 
@@ -178,4 +209,8 @@ public class ProfileActivity extends AppCompatActivity {
 
 
 
-}
+    }
+
+
+
+
